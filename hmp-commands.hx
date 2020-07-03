@@ -965,6 +965,50 @@ ETEXI
 STEXI
 @item announce_self
 @findex announce_self
+
+spp_dirty_log_start
+ETEXI
+
+    {
+        .name       = "spp_dirty_log_start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "call spp_dirty_log_start()",
+        .cmd        = hmp_spp_dirty_log_start,
+    },
+
+STEXI
+@item spp_dirty_log_start
+@findex spp_dirty_log_start
+
+dirty_log_start
+ETEXI
+
+    {
+        .name       = "dirty_log_start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "call dirty_log_start()",
+        .cmd        = hmp_dirty_log_start,
+    },
+
+STEXI
+@item dirty_log_start
+@findex dirty_log_start
+test
+ETEXI
+
+    {
+        .name       = "sppon",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start spp",
+        .cmd        = hmp_sppon,
+    },
+
+STEXI
+@item sppon
+@findex sppon
 Trigger a round of GARP/RARP broadcasts; this is useful for explicitly updating the
 network infrastructure after a reconfiguration or some forms of migration.
 The timings of the round are set by the migration announce parameters.

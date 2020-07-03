@@ -300,6 +300,7 @@ struct MachineState {
     CpuTopology smp;
     struct NVDIMMState *nvdimms_state;
     struct NumaState *numa_state;
+    bool spp;
 };
 
 #define DEFINE_MACHINE(namestr, machine_initfn) \

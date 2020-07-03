@@ -236,6 +236,7 @@ struct kvm_hyperv_exit {
 #define KVM_EXIT_IOAPIC_EOI       26
 #define KVM_EXIT_HYPERV           27
 #define KVM_EXIT_ARM_NISV         28
+#define KVM_EXIT_SPP              29
 
 /* For KVM_EXIT_INTERNAL_ERROR */
 /* Emulate instruction failed. */
@@ -393,6 +394,11 @@ struct kvm_run {
 		struct {
 			__u8 vector;
 		} eoi;
+		/* KVM_EXIT_SPP */
+		struct {
+			__u64 addr;
+			__u8 insn_len;
+		} spp;
 		/* KVM_EXIT_HYPERV */
 		struct kvm_hyperv_exit hyperv;
 		/* KVM_EXIT_ARM_NISV */
@@ -530,6 +536,14 @@ struct kvm_vapic_addr {
 };
 
 /* for KVM_SET_MP_STATE */
+
+/* for KVM_SUBPAGES_GET_ACCESS and KVM_SUBPAGES_SET_ACCESS */
+#define SUBPAGE_MAX_BITMAP 128
+struct kvm_subpage {
+	__u64 base_gfn;
+	__u64 npages;
+	__u32 access_map[SUBPAGE_MAX_BITMAP];
+};
 
 /* not all states are valid on all architectures */
 #define KVM_MP_STATE_RUNNABLE          0
@@ -1264,6 +1278,8 @@ struct kvm_vfio_spapr_tce {
 					struct kvm_userspace_memory_region)
 #define KVM_SET_TSS_ADDR          _IO(KVMIO,   0x47)
 #define KVM_SET_IDENTITY_MAP_ADDR _IOW(KVMIO,  0x48, __u64)
+#define KVM_SUBPAGES_GET_ACCESS  _IOR(KVMIO, 0x49, __u64)
+#define KVM_SUBPAGES_SET_ACCESS  _IOW(KVMIO, 0x4a, __u64)
 
 /* enable ucontrol for s390 */
 struct kvm_s390_ucas_mapping {
@@ -1622,5 +1638,7 @@ struct kvm_hyperv_eventfd {
 
 #define KVM_HYPERV_CONN_ID_MASK		0x00ffffff
 #define KVM_HYPERV_EVENTFD_DEASSIGN	(1 << 0)
+
+
 
 #endif /* __LINUX_KVM_H */

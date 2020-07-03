@@ -687,6 +687,7 @@ int hvf_vcpu_exec(CPUState *cpu)
     CPUX86State *env = &x86_cpu->env;
     int ret = 0;
     uint64_t rip = 0;
+    FILE *debug_file;
 
     if (hvf_process_events(cpu)) {
         return EXCP_HLT;
@@ -943,6 +944,12 @@ int hvf_vcpu_exec(CPUState *cpu)
             wreg(cpu->hvf_fd, HV_X86_RDX, 0);
             macvm_set_rip(cpu, rip + ins_len);
             break;
+        case EXIT_REASON_SPP;
+            printf("EXIT_REASON_SPP in hvf.c\n");
+            debug_file = fopen("/tmp/debug.csv", "a");
+            fprintf(debug_file, "KVM_EXIT_SPP in kvm.c\n");
+            fprintf(debug_file, "  EXIT_QUAL: %uld\n", exit_qual);
+            fclose(debug_file);
         case VMX_REASON_VMCALL:
             env->exception_nr = EXCP0D_GPF;
             env->exception_injected = 1;

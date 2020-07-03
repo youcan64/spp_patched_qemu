@@ -3771,6 +3771,15 @@ Enable KVM full virtualization support. This option is only available
 if KVM support is enabled when compiling.
 ETEXI
 
+DEF("enable-spp", 0, QEMU_OPTION_enable_spp, \
+    "-enable-spp     enable KVM SubPage write Premission\n", QEMU_ARCH_ALL)
+STEXI
+@item -enable-spp
+@findex -enable-spp
+Enable subpage write permission support. This option is only available
+if KVM support is enabled when compiling.
+ETEXI
+
 DEF("xen-domid", HAS_ARG, QEMU_OPTION_xen_domid,
     "-xen-domid id   specify xen guest domain id\n", QEMU_ARCH_ALL)
 DEF("xen-attach", 0, QEMU_OPTION_xen_attach,

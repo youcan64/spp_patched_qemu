@@ -17,6 +17,7 @@
 #include "qemu/queue.h"
 #include "hw/core/cpu.h"
 #include "exec/memattrs.h"
+#include "exec/cpu-common.h"
 
 #ifdef NEED_CPU_H
 # ifdef CONFIG_KVM
@@ -216,6 +217,12 @@ int kvm_has_many_ioeventfds(void);
 int kvm_has_gsi_routing(void);
 int kvm_has_intx_set_mask(void);
 
+void kvm_spp_dirty_log_start(Monitor *mon);
+int kvm_getspp_with_gfn(unsigned long long gfn, unsigned long long npages, unsigned int *access_map);
+int kvm_setspp_with_gfn(unsigned long long gfn, unsigned long long npages, unsigned int *access_map);
+void kvm_setspp(KVMState *s, hwaddr start_addr, ram_addr_t size);
+void kvm_setspp_all(KVMState *s);
+void kvm_sppon(Monitor *mon);
 int kvm_init_vcpu(CPUState *cpu);
 int kvm_cpu_exec(CPUState *cpu);
 int kvm_destroy_vcpu(CPUState *cpu);

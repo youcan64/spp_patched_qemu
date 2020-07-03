@@ -1975,6 +1975,18 @@ static bool migrate_prepare(MigrationState *s, bool blk, bool blk_inc,
     return true;
 }
 
+void qmp_sppon(Error **errp)
+{
+    Error *local_err = NULL;
+
+
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+}
+
 void qmp_migrate(const char *uri, bool has_blk, bool blk,
                  bool has_inc, bool inc, bool has_detach, bool detach,
                  bool has_resume, bool resume, Error **errp)
@@ -3349,6 +3361,10 @@ static void *migration_thread(void *opaque)
     s->setup_time = qemu_clock_get_ms(QEMU_CLOCK_HOST) - setup_start;
     migrate_set_state(&s->state, MIGRATION_STATUS_SETUP,
                       MIGRATION_STATUS_ACTIVE);
+
+    /*
+     * 
+     */
 
     trace_migration_thread_setup_complete();
 

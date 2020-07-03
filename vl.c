@@ -2875,6 +2875,7 @@ int main(int argc, char **argv, char **envp)
     char *dir, **dirs;
     BlockdevOptionsQueue bdo_queue = QSIMPLEQ_HEAD_INITIALIZER(bdo_queue);
     QemuPluginList plugin_list = QTAILQ_HEAD_INITIALIZER(plugin_list);
+    bool spp = false;
 
     os_set_line_buffering();
 
@@ -3472,6 +3473,9 @@ int main(int argc, char **argv, char **envp)
                 olist = qemu_find_opts("machine");
                 qemu_opts_parse_noisily(olist, "accel=kvm", false);
                 break;
+            case QEMU_OPTION_enable_spp:
+                spp = true;
+                break;
             case QEMU_OPTION_M:
             case QEMU_OPTION_machine:
                 olist = qemu_find_opts("machine");
@@ -3967,6 +3971,11 @@ int main(int argc, char **argv, char **envp)
                      current_machine->smp.max_cpus,
                      machine_class->name, machine_class->max_cpus);
         exit(1);
+    }
+
+    if (spp) {
+        current_machine->spp = true;
+        printf("spp ON!!!\n");
     }
 
     /*

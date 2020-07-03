@@ -20,6 +20,7 @@
 #include "chardev/char.h"
 #include "sysemu/block-backend.h"
 #include "sysemu/runstate.h"
+#include "sysemu/kvm.h"
 #include "qemu/config-file.h"
 #include "qemu/option.h"
 #include "qemu/timer.h"
@@ -51,6 +52,7 @@
 #include "qemu/cutils.h"
 #include "qemu/error-report.h"
 #include "exec/ramlist.h"
+#include "exec/memory.h"
 #include "hw/intc/intc.h"
 #include "hw/rdma/rdma.h"
 #include "migration/snapshot.h"
@@ -2128,6 +2130,40 @@ static void hmp_migrate_status_cb(void *opaque)
     }
 
     qapi_free_MigrationInfo(info);
+}
+
+void hmp_dirty_log_start(Monitor *mon, const QDict *qdict)
+{
+    monitor_printf(mon, "dirty_log_start\n");
+
+
+    qemu_mutex_lock_iothread();
+    qemu_mutex_lock_ramlist();
+
+    WITH_RCU_READ_LOCK_GUARD() {
+        // ram_list_init_bitmaps();
+        memory_global_dirty_log_start();
+    }
+    qemu_mutex_unlock_ramlist();
+    qemu_mutex_unlock_iothread();
+}
+
+void hmp_spp_dirty_log_start(Monitor *mon, const QDict *qdict)
+{
+    kvm_spp_dirty_log_start(mon);
+}
+
+void hmp_sppon(Monitor *mon, const QDict *qdict)
+{
+    Error *err = NULL;
+    monitor_printf(mon, "hmp_sppon called\n");
+
+    kvm_sppon(mon);
+
+    if (err) {
+        hmp_handle_error(mon, err);
+        return;
+    }
 }
 
 void hmp_migrate(Monitor *mon, const QDict *qdict)

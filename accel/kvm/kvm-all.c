@@ -18,6 +18,9 @@
 
 #include <linux/kvm.h>
 
+#define KVM_CAP_X86_SPP 179
+#define KVM_CAP_X86_SPP_DIRTY_LOG 180
+
 #include "qemu/atomic.h"
 #include "qemu/option.h"
 #include "qemu/config-file.h"
@@ -34,6 +37,7 @@
 #include "qemu/bswap.h"
 #include "exec/memory.h"
 #include "exec/ram_addr.h"
+#include "exec/cpu-common.h"
 #include "exec/address-spaces.h"
 #include "qemu/event_notifier.h"
 #include "qemu/main-loop.h"
@@ -44,6 +48,7 @@
 #include "qapi/visitor.h"
 #include "qapi/qapi-types-common.h"
 #include "qapi/qapi-visit-common.h"
+#include "monitor/monitor-internal.h"
 
 #include "hw/boards.h"
 
@@ -1852,6 +1857,94 @@ bool kvm_vcpu_id_is_valid(int vcpu_id)
     return vcpu_id >= 0 && vcpu_id < kvm_max_vcpu_id(s);
 }
 
+void kvm_spp_dirty_log_start(Monitor *mon)
+{
+    KVMState *s = KVM_STATE(current_accel());
+    // int ret;
+    // monitor_printf(mon, "spp_dirty_log_start\n");
+    // ret = kvm_vm_enable_cap(s, KVM_CAP_X86_SPP_DIRTY_LOG, 0);
+    // monitor_printf(mon, "result: %d\n", ret);
+    kvm_setspp_all(s);
+    return;
+}
+
+int kvm_getspp_with_gfn(__u64 gfn, __u64 npages, __u32 *access_map)
+{
+    KVMState *s = KVM_STATE(current_accel());
+    int ret;
+    struct kvm_subpage spp_info;
+    spp_info.base_gfn = gfn;
+    spp_info.npages = npages;
+    ret = kvm_vm_ioctl(s, KVM_SUBPAGES_GET_ACCESS, &spp_info);
+
+    return ret;
+}
+
+int kvm_setspp_with_gfn(__u64 gfn, __u64 npages, __u32 *access_map)
+{
+    KVMState *s = KVM_STATE(current_accel());
+    int ret;
+    struct kvm_subpage spp_info;
+    spp_info.base_gfn = gfn;
+    spp_info.npages = npages;
+    for(int i = 0; i < npages; i++){
+        spp_info.access_map[i] = access_map[i];
+    }
+    ret = kvm_vm_ioctl(s, KVM_SUBPAGES_SET_ACCESS, &spp_info);
+
+    return ret;
+}
+
+void kvm_setspp(KVMState *s, hwaddr start_addr, ram_addr_t size)
+{
+    FILE *debug_file;
+    struct kvm_subpage spp_info;
+    __u64 gfn = start_addr >> 12;
+    __u64 npages = size >> 12;
+    int ret;
+    for(int i = 0; i < SUBPAGE_MAX_BITMAP; i++){
+        // spp_info.access_map[i] = 0xffffffff;
+        spp_info.access_map[i] = 0x00000000;
+    }
+    debug_file = fopen("/tmp/debug.csv", "a");
+    for(int i = 0; i <= (npages - 1) / SUBPAGE_MAX_BITMAP; i++){
+        spp_info.base_gfn = gfn + i * SUBPAGE_MAX_BITMAP;
+        spp_info.npages = npages - i * SUBPAGE_MAX_BITMAP;
+        if(spp_info.npages > SUBPAGE_MAX_BITMAP){
+            spp_info.npages = SUBPAGE_MAX_BITMAP;
+        }
+        ret = kvm_vm_ioctl(s, KVM_SUBPAGES_SET_ACCESS, &spp_info);
+        fprintf(debug_file, "  base_gfn: %llu  npages: %llu ret: %d\n", spp_info.base_gfn, spp_info.npages, ret);
+        // ret = kvm_vm_ioctl(s, KVM_SUBPAGES_GET_ACCESS, &spp_info);
+        // fprintf(debug_file, "  result: %u\n", spp_info.access_map[0]);
+    }
+    fclose(debug_file);
+}
+
+void kvm_setspp_all(KVMState *s)
+{
+    int i = 0;
+    while(true) {
+        if(s->memory_listener.slots[i].memory_size <= 0)
+            break;
+        kvm_setspp(s, s->memory_listener.slots[i].start_addr, s->memory_listener.slots[i].memory_size);
+        i++;
+    }
+}
+
+void kvm_sppon(Monitor *mon)
+{
+    MachineState *ms = MACHINE(qdev_get_machine());
+    KVMState *s = KVM_STATE(current_accel());
+    int ret;
+    monitor_printf(mon, "ms->spp: %d\n", ms->spp);
+    if (ms->spp && kvm_vm_check_extension(s, KVM_CAP_X86_SPP)) {
+        ret = kvm_vm_enable_cap(s, KVM_CAP_X86_SPP, 0);
+        monitor_printf(mon, "result: %d\n", ret);
+    }
+    return;
+}
+
 static int kvm_init(MachineState *ms)
 {
     MachineClass *mc = MACHINE_GET_CLASS(ms);
@@ -2100,6 +2193,33 @@ static int kvm_init(MachineState *ms)
         qemu_balloon_inhibit(true);
     }
 
+    printf("nested: %d\n", kvm_vm_check_extension(s, KVM_CAP_NESTED_STATE));
+
+
+    // for(int i = 0; i < s->nr_slots; i++) {
+    //     printf("i: %d\n  start_addr: %ld\n  mem_size: %ld\n",
+    //         i,
+    //         s->memory_listener.slots[i].start_addr,
+    //         s->memory_listener.slots[i].memory_size
+    //     );
+    // }
+    // struct kvm_subpage spp_info;
+    // for(__u64 base_gfn = 0; base_gfn < 0x1000000000; base_gfn += 0x1000){
+        // __u64 base_gfn = 0;
+        // printf("base_gfn: %lld\n", base_gfn);
+        // spp_info.base_gfn = base_gfn;
+        // spp_info.npages = 1;
+        // for(int i=0;i<SUBPAGE_MAX_BITMAP; i++) spp_info.access_map[i] = 0;
+        // ret = kvm_vm_ioctl(s, KVM_SUBPAGES_SET_ACCESS, &spp_info);
+        // if (ret == -1) {
+        //         printf("ioctl failed %d\n", errno);
+        //         ret = -1;
+        //     }
+        // printf("  ret: %d\n", ret);
+    // }
+    for(int i=0;i<SUBPAGE_MAX_BITMAP; i++) 
+        // printf("%d: %d\n", i, spp_info.access_map[i]);
+
     return 0;
 
 err:
@@ -2308,7 +2428,10 @@ int kvm_cpu_exec(CPUState *cpu)
 
     qemu_mutex_unlock_iothread();
     cpu_exec_start(cpu);
-
+    
+    printf("run:)\n");
+    // int i;
+    // scanf("%d", &i);
     do {
         MemTxAttrs attrs;
 
@@ -2371,6 +2494,7 @@ int kvm_cpu_exec(CPUState *cpu)
         trace_kvm_run_exit(cpu->cpu_index, run->exit_reason);
         switch (run->exit_reason) {
         case KVM_EXIT_IO:
+            // printf("KVM_EXIT_IO\n");
             DPRINTF("handle_io\n");
             /* Called outside BQL */
             kvm_handle_io(run->io.port, attrs,
@@ -2381,6 +2505,7 @@ int kvm_cpu_exec(CPUState *cpu)
             ret = 0;
             break;
         case KVM_EXIT_MMIO:
+        // printf("KVM_EXIT_MMIO\n");
             DPRINTF("handle_mmio\n");
             /* Called outside BQL */
             address_space_rw(&address_space_memory,
@@ -2391,15 +2516,18 @@ int kvm_cpu_exec(CPUState *cpu)
             ret = 0;
             break;
         case KVM_EXIT_IRQ_WINDOW_OPEN:
+        // printf("KVM_EXIT_IRQ_WINDOW_OPEN\n");
             DPRINTF("irq_window_open\n");
             ret = EXCP_INTERRUPT;
             break;
         case KVM_EXIT_SHUTDOWN:
+        // printf("KVM_EXIT_SHUTDOWN\n");
             DPRINTF("shutdown\n");
             qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
             ret = EXCP_INTERRUPT;
             break;
         case KVM_EXIT_UNKNOWN:
+        // printf("KVM_EXIT_UNKNOWN\n");
             fprintf(stderr, "KVM: unknown exit, hardware reason %" PRIx64 "\n",
                     (uint64_t)run->hw.hardware_exit_reason);
             ret = -1;
@@ -2430,6 +2558,7 @@ int kvm_cpu_exec(CPUState *cpu)
                 break;
             }
             break;
+
         default:
             DPRINTF("kvm_arch_handle_exit\n");
             ret = kvm_arch_handle_exit(cpu, run);
