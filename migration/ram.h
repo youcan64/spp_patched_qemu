@@ -67,4 +67,7 @@ int ram_dirty_bitmap_reload(MigrationState *s, RAMBlock *rb);
 int colo_init_ram_cache(void);
 void colo_release_ram_cache(void);
 
+void mycache_init(void);
+void ram_walk_blocks(Monitor *mon, bool subpage, bool compress, bool xbzrle);
+
 #endif

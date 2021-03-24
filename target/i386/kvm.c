@@ -4218,19 +4218,10 @@ static int kvm_handle_tpr_access(X86CPU *cpu)
 
 static int kvm_handle_spp(X86CPU *cpu, __u64 addr, __u8 insn_len)
 {
-    FILE *debug_file;
     unsigned int access_map[1];
-    int r;
     __u64 gfn = addr >> 12;
     __u64 subpage = (addr % 0x1000) / 0x80;
-    debug_file = fopen("/tmp/debug.csv", "a");
-    fprintf(debug_file, "KVM_EXIT_SPP in kvm.c\n");
-    fprintf(debug_file, "  addr: %llu\n", addr);
-    fprintf(debug_file, "  gfn: %llu\n", gfn);
-    fprintf(debug_file, "  subpage: %llu\n", subpage);
-    fprintf(debug_file, "  insn_len: %u\n", insn_len);
     kvm_getspp_with_gfn(gfn, 1, access_map);
-    fprintf(debug_file, "  before: access_map: %u\n", access_map[0]);
 
     if(insn_len == 0xf) {
         access_map[0] = 0xffffffff;
@@ -4240,11 +4231,7 @@ static int kvm_handle_spp(X86CPU *cpu, __u64 addr, __u8 insn_len)
         new_access = 1 << subpage;
         access_map[0] |= new_access;
     }
-    r = kvm_setspp_with_gfn(gfn, 1, access_map);
-    fprintf(debug_file, "  result: %d\n", r);
-    kvm_getspp_with_gfn(gfn, 1, access_map);
-    fprintf(debug_file, "  after : access_map: %u\n", access_map[0]);
-    fclose(debug_file);
+    kvm_setspp_with_gfn(gfn, 1, access_map);
     return 0;
 }
 
@@ -4449,6 +4436,9 @@ int kvm_arch_handle_exit(CPUState *cs, struct kvm_run *run)
     X86CPU *cpu = X86_CPU(cs);
     uint64_t code;
     int ret;
+    FILE *debug_file;
+    KVMState *s = kvm_state;
+    struct kvm_spp_log spp_log[SPP_LOG_SIZE];
 
     switch (run->exit_reason) {
     case KVM_EXIT_HLT:
@@ -4502,6 +4492,19 @@ int kvm_arch_handle_exit(CPUState *cs, struct kvm_run *run)
         break;
     case KVM_EXIT_SPP:
         ret = kvm_handle_spp(cpu, run->spp.addr, run->spp.insn_len);
+        break;
+    case KVM_EXIT_SPP_LOG_FULL:
+        if (kvm_vm_ioctl(s, KVM_GET_SPP_LOG, &spp_log) == -1) {
+            DPRINTF("ioctl failed %d\n", errno);
+            ret = -1;
+            break;
+        }
+        debug_file = fopen("/tmp/spplog.csv", "a");
+        for(int i=0; i<SPP_LOG_SIZE; i++){
+            fprintf(debug_file, "%ld, %ld, %llu\n", spp_log[i].time.tv_sec, spp_log[i].time.tv_nsec, spp_log[i].subpage);
+        }
+        fclose(debug_file);
+        ret = 0;
         break;
     default:
         fprintf(stderr, "KVM: unknown exit reason %d\n", run->exit_reason);

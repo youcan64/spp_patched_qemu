@@ -57,6 +57,9 @@
 #include "hw/rdma/rdma.h"
 #include "migration/snapshot.h"
 #include "migration/misc.h"
+#include "migration/ram.h"
+
+#include <unistd.h>
 
 #ifdef CONFIG_SPICE
 #include <spice/enums.h>
@@ -2137,7 +2140,7 @@ void hmp_dirty_log_start(Monitor *mon, const QDict *qdict)
     monitor_printf(mon, "dirty_log_start\n");
 
 
-    qemu_mutex_lock_iothread();
+    // qemu_mutex_lock_iothread();
     qemu_mutex_lock_ramlist();
 
     WITH_RCU_READ_LOCK_GUARD() {
@@ -2145,7 +2148,7 @@ void hmp_dirty_log_start(Monitor *mon, const QDict *qdict)
         memory_global_dirty_log_start();
     }
     qemu_mutex_unlock_ramlist();
-    qemu_mutex_unlock_iothread();
+    // qemu_mutex_unlock_iothread();
 }
 
 void hmp_spp_dirty_log_start(Monitor *mon, const QDict *qdict)
@@ -2164,6 +2167,70 @@ void hmp_sppon(Monitor *mon, const QDict *qdict)
         hmp_handle_error(mon, err);
         return;
     }
+}
+
+void hmp_init_mycache(Monitor *mon, const QDict *qdict)
+{
+    // bool subpage = qdict_get_bool(qdict, "subpage");
+    mycache_init();
+}
+
+void hmp_get_iteration_size(Monitor *mon, const QDict *qdict)
+{
+    bool subpage = qdict_get_bool(qdict, "subpage");
+    bool compress = qdict_get_bool(qdict, "compress");
+    bool xbzrle = qdict_get_bool(qdict, "xbzrle");
+    // kvm_get_first_iteration_size(mon);
+    ram_walk_blocks(mon, subpage, compress, xbzrle);
+}
+
+void hmp_get_dirty_size(Monitor *mon, const QDict *qdict)
+{
+    kvm_get_dirty_size(mon);
+}
+
+void hmp_get_clocks_in_guest(Monitor *mon, const QDict *qdict)
+{
+    kvm_get_clocks_in_guest(mon);
+}
+
+static __inline__ unsigned long long rdtsc(void)
+{
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
+void hmp_get_clocks_of_host(Monitor *mon, const QDict *qdict)
+{
+    monitor_printf(mon, "%llu\n", rdtsc());
+}
+
+void hmp_get_spp_violation_count(Monitor *mon, const QDict *qdict)
+{
+    kvm_get_spp_violation_count(mon);
+}
+
+void hmp_get_spp_misconfig_count(Monitor *mon, const QDict *qdict)
+{
+    kvm_get_spp_misconfig_count(mon);
+}
+
+void hmp_run_for_instruction(Monitor *mon, const QDict *qdict)
+{
+    int64_t int_instruction = qdict_get_int(qdict, "instruction");
+    uint64_t instruction = (uint64_t)(int_instruction) * 1000000;
+    unsigned long long tsc, start_tsc;
+    monitor_printf(mon, "run for %lu instructions\n", instruction);
+
+    start_tsc = rdtsc();
+    tsc = start_tsc;
+    hmp_cont(mon, qdict);
+    while(tsc < start_tsc + instruction){
+        usleep(1000000);
+        tsc = rdtsc();
+    }
+    hmp_stop(mon, qdict);
 }
 
 void hmp_migrate(Monitor *mon, const QDict *qdict)

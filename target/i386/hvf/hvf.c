@@ -946,10 +946,10 @@ int hvf_vcpu_exec(CPUState *cpu)
             break;
         case EXIT_REASON_SPP;
             printf("EXIT_REASON_SPP in hvf.c\n");
-            debug_file = fopen("/tmp/debug.csv", "a");
-            fprintf(debug_file, "KVM_EXIT_SPP in kvm.c\n");
-            fprintf(debug_file, "  EXIT_QUAL: %uld\n", exit_qual);
-            fclose(debug_file);
+            // debug_file = fopen("/tmp/debug.csv", "a");
+            // fprintf(debug_file, "KVM_EXIT_SPP in kvm.c\n");
+            // fprintf(debug_file, "  EXIT_QUAL: %uld\n", exit_qual);
+            // fclose(debug_file);
         case VMX_REASON_VMCALL:
             env->exception_nr = EXCP0D_GPF;
             env->exception_injected = 1;

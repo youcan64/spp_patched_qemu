@@ -223,6 +223,11 @@ int kvm_setspp_with_gfn(unsigned long long gfn, unsigned long long npages, unsig
 void kvm_setspp(KVMState *s, hwaddr start_addr, ram_addr_t size);
 void kvm_setspp_all(KVMState *s);
 void kvm_sppon(Monitor *mon);
+void kvm_get_first_iteration_size(Monitor *mon);
+void kvm_get_dirty_size(Monitor *mon);
+void kvm_get_clocks_in_guest(Monitor *mon);
+void kvm_get_spp_violation_count(Monitor *mon);
+void kvm_get_spp_misconfig_count(Monitor *mon);
 int kvm_init_vcpu(CPUState *cpu);
 int kvm_cpu_exec(CPUState *cpu);
 int kvm_destroy_vcpu(CPUState *cpu);

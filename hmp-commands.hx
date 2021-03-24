@@ -995,6 +995,7 @@ ETEXI
 STEXI
 @item dirty_log_start
 @findex dirty_log_start
+
 test
 ETEXI
 
@@ -1009,6 +1010,128 @@ ETEXI
 STEXI
 @item sppon
 @findex sppon
+
+test
+ETEXI
+
+    {
+        .name       = "init_mycache",
+        .args_type  = "",
+        .params     = "",
+        .help       = "init_mycache",
+        .cmd        = hmp_init_mycache,
+    },
+
+STEXI
+@item init_mycache
+@findex init_mycache
+
+test
+ETEXI
+
+    {
+        .name       = "get_iteration_size",
+        .args_type  = "subpage:b,compress:b,xbzrle:b",
+        .params     = "on|off on|off on|off",
+        .help       = "get iteration size",
+        .cmd        = hmp_get_iteration_size,
+    },
+
+STEXI
+@item get_iteration_size 
+@findex get_first_iteration_size
+
+test
+ETEXI
+
+    {
+        .name       = "get_dirty_size",
+        .args_type  = "",
+        .params     = "",
+        .help       = "get dirty size",
+        .cmd        = hmp_get_dirty_size,
+    },
+
+STEXI
+@item get_dirty_size 
+@findex get_dirty_size
+
+test
+ETEXI
+
+    {
+        .name       = "get_clocks_in_guest",
+        .args_type  = "",
+        .params     = "",
+        .help       = "get clocks in guest",
+        .cmd        = hmp_get_clocks_in_guest,
+    },
+
+STEXI
+@item get_clocks_in_guest
+@findex get_clocks_in_guest
+
+test
+ETEXI
+
+    {
+        .name       = "get_clocks_of_host",
+        .args_type  = "",
+        .params     = "",
+        .help       = "get clocks of host",
+        .cmd        = hmp_get_clocks_of_host,
+    },
+
+STEXI
+@item get_clocks_of_host
+@findex get_clocks_of_host
+
+test
+ETEXI
+
+    {
+        .name       = "get_spp_violation_count",
+        .args_type  = "",
+        .params     = "",
+        .help       = "get spp violation count ",
+        .cmd        = hmp_get_spp_violation_count,
+    },
+
+STEXI
+@item get_spp_violation_count
+@findex get_spp_violation_count
+
+test
+ETEXI
+
+    {
+        .name       = "get_spp_misconfig_count",
+        .args_type  = "",
+        .params     = "",
+        .help       = "get spp misconfig count",
+        .cmd        = hmp_get_spp_misconfig_count,
+    },
+
+STEXI
+@item get_spp_misconfig_count
+@findex get_spp_misconfig_count
+
+test
+ETEXI
+
+    {
+        .name       = "run_for_instruction",
+        .args_type  = "instruction:i",
+        .params     = "instruction",
+        .help       = "run vm for given instruction",
+        .cmd        = hmp_run_for_instruction,
+    },
+
+STEXI
+@item run_for_instruction
+@findex run_for_instruction
+
+
 Trigger a round of GARP/RARP broadcasts; this is useful for explicitly updating the
 network infrastructure after a reconfiguration or some forms of migration.
 The timings of the round are set by the migration announce parameters.
